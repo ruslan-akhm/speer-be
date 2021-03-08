@@ -71,7 +71,6 @@ exports.register = async (req, res, next) => {
         });
         const saved = newUser.save();
         createSendToken(saved, 201, req, res);
-        //res.json({ message: "Registered" });
       }
     });
   } catch (err) {
