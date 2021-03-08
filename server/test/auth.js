@@ -2,7 +2,8 @@ require("dotenv").config();
 let chai = require("chai");
 let chaiHttp = require("chai-http");
 let server = require("../app");
-var connectDatabase = require("../database");
+let connectDatabase = require("../database");
+let User = require("../models/User");
 
 //Assertion style
 chai.should();
@@ -13,17 +14,79 @@ describe("auth  API", () => {
   before("connect", function (done) {
     connectDatabase()
       .then(done)
-      .catch(err => done(err)); //return mongoose.connect(process.env.DATABASE);
+      .catch(err => done(err));
   });
 
-  /* test register */
-  /* test login */
+  /* POST  -  test REGISTER */
+
+  describe("POST /api/auth/register", () => {
+    //Clean up database after testing successful registering of a new user
+    afterEach(async () => {
+      await User.findOneAndDelete({ username: "polarbear" });
+    });
+
+    //successful register
+    it("should receive cookie and object", done => {
+      //registering new username
+      const credentials = {
+        username: "polarbear",
+        password: "123456",
+      };
+      chai
+        .request(server)
+        .post("/api/auth/register")
+        .send(credentials)
+        .end((err, res) => {
+          res.should.have.status(201);
+          res.should.be.a("object");
+          done();
+        });
+    });
+
+    //UNsuccessful register - username exists
+    it("should NOT receive cookie and object", done => {
+      //registering already existing username
+      const credentials = {
+        username: "ruslan",
+        password: "123456",
+      };
+      chai
+        .request(server)
+        .post("/api/auth/register")
+        .send(credentials)
+        .end((err, res) => {
+          res.should.have.status(400);
+          res.should.be.a("object");
+          done();
+        });
+    });
+
+    //UNsuccessful register - Validation fail
+    it("should NOT receive cookie and object", done => {
+      //registering username with password validation fail
+      const credentials = {
+        username: "newpolarbear",
+        password: "12",
+      };
+      chai
+        .request(server)
+        .post("/api/auth/register")
+        .send(credentials)
+        .end((err, res) => {
+          res.should.have.status(500);
+          res.should.be.a("object");
+          done();
+        });
+    });
+  });
+
+  /* POST  -  test LOGIN */
 
   describe("POST /api/auth/login", () => {
-    //successful login with existing email
+    //successful login with existing username
     it("should receive cookie and object", done => {
       const credentials = {
-        email: "rus1@lan.com",
+        username: "ruslan",
         password: "123456",
       };
       chai
@@ -37,10 +100,10 @@ describe("auth  API", () => {
         });
     });
 
-    //UNsuccessful login with NON-existing email
+    //UNsuccessful login with NON-existing username
     it("should NOT receive cookie and object", done => {
       const credentials = {
-        email: "xyz1234567890@xyz.com",
+        username: "newuserthatdoesntexist",
         password: "123456",
       };
       chai
@@ -55,7 +118,7 @@ describe("auth  API", () => {
     });
   });
 
-  /* test logout */
+  /* GET  -  test LOGOUT */
 
   describe("GET /api/auth/logout", () => {
     it("should return object and status 200", done => {

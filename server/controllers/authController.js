@@ -3,17 +3,20 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
+//validation of data received
 const {
   registerValidation,
   loginValidation,
 } = require("../middleware/validation");
 
+//assign a token to authorized user
 const signToken = id => {
   return jwt.sign({ id }, process.env.TOKEN, {
     expiresIn: "12h",
   });
 };
 
+//send cookie and user data in a response
 const createSendToken = (user, statusCode, req, res) => {
   const token = signToken(user._id);
 
@@ -22,7 +25,7 @@ const createSendToken = (user, statusCode, req, res) => {
     httpOnly: true,
   });
 
-  // Remove password from output
+  // remove user's password
   user.password = undefined;
 
   res.status(statusCode).json({
@@ -34,40 +37,34 @@ const createSendToken = (user, statusCode, req, res) => {
   });
 };
 
-//on signup we expect email, name and password fields to be received in req.body
+//on signup we expect username and password fields to be received in req.body
 exports.register = async (req, res, next) => {
   try {
-    const { email, password, name } = req.body;
-    console.log(email);
+    const { username, password } = req.body;
     // Validate data received, send error message if fail
     const { error } = registerValidation({
-      email,
+      username,
       password,
-      name,
     });
 
     if (error) {
-      console.log("error at validation");
       return next(createError(400, error.details[0].message));
     }
 
-    // Check if such email already registered
-    await User.findOne({ email }, async (err, user) => {
-      console.log("Checking user ");
-      if (err) return console.log(err); //next(createError(400, "Internal error occurred"));
+    // Check if such username already registered
+    await User.findOne({ username }, async (err, user) => {
+      if (err) return next(createError(400, "Internal error occurred"));
       if (user) {
-        return next(createError(400, "Such email already exists"));
+        return next(createError(400, "Such username already exists"));
       }
       if (!user) {
-        console.log("Registering");
         // Create salt and hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const newUser = new User({
-          email,
+          username,
           password: hashedPassword,
-          name,
         });
         const saved = newUser.save();
         createSendToken(saved, 201, req, res);
@@ -78,22 +75,21 @@ exports.register = async (req, res, next) => {
   }
 };
 
-//on login we expect email and login to be received in req.body
+//on login we expect username and login to be received in req.body
 exports.login = async (req, res, next) => {
   try {
+    const { username, password } = req.body;
     //validate data received and send error if fail
-    const { error } = loginValidation(req.body);
+    const { error } = loginValidation({ username, password });
     if (error) {
       return next(createError(400, error.details[0].message));
     }
 
-    const { email, password } = req.body;
-
     //here we look if user exists in our database
-    const user = await User.findOne({ email: email }, async (err, user) => {
+    const user = await User.findOne({ username }, async (err, user) => {
       if (err) return next(createError(400, "Internal error occurred"));
       if (!user) {
-        return next(createError(400, "No user with such email found"));
+        return next(createError(400, "No user with such username found"));
       } else {
         //check user's password
         const validPassword = await bcrypt.compare(password, user.password);
