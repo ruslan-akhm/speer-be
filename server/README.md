@@ -1,6 +1,6 @@
 ### Info
 
-Front-end part of the assessment
+Back-end part of the assessment
 
 ---
 
