@@ -73,7 +73,7 @@ describe("auth  API", () => {
         .post("/api/auth/register")
         .send(credentials)
         .end((err, res) => {
-          res.should.have.status(500);
+          res.should.have.status(400);
           res.should.be.a("object");
           done();
         });

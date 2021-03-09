@@ -1,15 +1,17 @@
-var createError = require("http-errors");
-var express = require("express");
-var path = require("path");
-var cookieParser = require("cookie-parser");
-var logger = require("morgan");
-var connectDatabase = require("./database");
+const createError = require("http-errors");
+const express = require("express");
+const path = require("path");
+const cookieParser = require("cookie-parser");
+const logger = require("morgan");
+const connectDatabase = require("./database");
 
-var app = express();
+const app = express();
 
+//connect mongoDB
 connectDatabase();
 
-var authRouter = require("./routes/authRouter");
+const authRouter = require("./routes/authRouter");
+const messageRouter = require("./routes/messageRouter");
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -21,7 +23,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+//routes
 app.use("/api/auth/", authRouter);
+app.use("/api/message/", messageRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
